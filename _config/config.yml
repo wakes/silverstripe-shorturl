@@ -1,0 +1,9 @@
+---
+Name: shorturl-config
+---
+#Director:
+#  rules:
+#    'link': ShortURLController
+Page:
+  extensions:
+    - ShortURLPageExtension
