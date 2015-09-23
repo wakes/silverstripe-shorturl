@@ -3,7 +3,7 @@
 	"require": {
 		"silverstripe/framework": "3.x"
 	},
-	"extras": {
+	"extra": {
 		"installer-name": "shorturl"
 	},
 	"minimum-stability": "dev"
