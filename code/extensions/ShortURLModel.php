@@ -6,13 +6,17 @@
 class ShortURLModelExtension extends DataExtension {
 	const DefaultKeyFieldType = 'Varchar';      // keep length
 	const DefaultKeyLength = 5;                    // keep in sync with self.KeyFieldType, may need to increase for large sites
-	const DefaultRetryMax = 10;             // default number of attempts to regenerate key without a collision
 	const KeyFieldName = 'ShortURLKey';
 	const URLFieldName = 'ShortURLValue';
 
 	private static $key_field_type = self::DefaultKeyFieldType;
 
 	private static $key_length = self::DefaultKeyLength;
+
+
+	public function setShortURL($url) {
+		$this->owner->{self::url_field_name()} = $url;
+	}
 
 	public static function get_extra_config($class, $extension, $args) {
 		$config = parent::get_extra_config($class, $extension, $args) ?: [];
@@ -24,6 +28,14 @@ class ShortURLModelExtension extends DataExtension {
 			]
 		);
 		return $config;
+	}
+
+	public static function url_field_name() {
+		return self::URLFieldName;
+	}
+
+	public static function key_field_name() {
+		return self::KeyFieldName;
 	}
 
 	public static function key_field_type() {

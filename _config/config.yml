@@ -1,9 +1,15 @@
 ---
 Name: shorturl-config
+Before:
+  - '#oggle-config'
 ---
-#Director:
-#  rules:
-#    'link': ShortURLController
+ShortURLModel:
+  extensions:
+    - ShortURLModelExtension
 Page:
   extensions:
     - ShortURLPageExtension
+Page_Controller:
+  action: 'share'
+  extensions:
+    - ShortURLPageControllerExtension
