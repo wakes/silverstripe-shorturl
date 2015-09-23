@@ -1,18 +1,15 @@
 <?php
 
 class ShortURLModel extends DataObject {
-    const KeyFieldType = 'Varchar(5)';
-    const KeyLength = 5;                    // keep in sync with self.KeyFieldType
-    const RetryCount = 10;
+	// maximum number of retries to avoid a generated key collision
+	private static $retry_max = self::DefaultRetryMax;
 
-    static $db = array(
-        'Key' => self::KeyFieldType,
-        'URL' => 'Text'
-    );
-
+	// stops a key from having it's url updated
     private static $prevent_updates = true;
 
+	// take valid characters for the key from this string.
     private static $valid_chars = 'ABCDEFGHIJKLMNOPQRSTVWXYZabcdefghijklmnopqrstvwxyz0123456789';
+
 
 	/**
 	 * Return a ShortURLModel returned by Key or null if not found.
@@ -27,16 +24,17 @@ class ShortURLModel extends DataObject {
 
     /**
      * Build a key from config.valid_chars of self.KeyLength length testing for records
-     * already existing with that key and failing after self.RetryCount attempts.
+     * already existing with that key and failing after self.DefaultRetryMax attempts.
      *
      * @return string
      * @throws Exception
      */
-    public static function get_unique_key() {
+    public static function unique_key() {
         $key = '';
         $chars = (string)static::config()->get('valid_chars');
         $length = strlen($chars);
-        $loops = 0;
+        $retryCount = 0;
+	    $retryMax = (int)static::config()->get('retry_max');
 
         do {
             for ($i = 0; $i < self::KeyLength; $i++) {
@@ -44,30 +42,36 @@ class ShortURLModel extends DataObject {
             }
             $exists = self::key_exists($key);
 
-        } while ($exists && (++$loops < self::RetryCount));
+        } while ($exists && (++$retryCount < $retryMax));
 
-        if ($loops == self::RetryCount) {
-            throw new Exception("Tried 20 times to get a key and failed, you might need to increase your key length");
+        if ($retryCount >= self::DefaultRetryMax) {
+            throw new Exception("Tried '$retryCount' times to get a key and failed, you might need to increase your key length");
         }
 
         return $key;
     }
 
+	/**
+	 * Checks if key exists or not for a ShortURLModel.
+	 * @param string $key
+	 * @return bool
+	 */
     public static function key_exists($key) {
         return ShortURLModel::get()->filter('Key', $key)->count() != 0;
     }
 
     /**
-     * If we are new and don't already have a key then assign a new unique key. If we aren't new then
-     * prevents updating of URL for an existing Key.
+     * If we are new and don't already have a key then assign a new unique key. If we aren't new then optionally
+     * depending on config.prevent_updates prevents updating of key for an existing Key.
      *
      * @throws Exception
      */
     public function onBeforeWrite() {
         if (!$this->isInDB()) {
             if (!$this->Key) {
-                $this->Key = self::get_unique_key();
+                $this->Key = self::unique_key();
             } else {
+	            // shouldn't happen if we have enough config.retry_max retries
                 if (self::key_exists($this->Key)) {
                     throw new ShortURLException("Key collision on '$this->Key'");
                 }
